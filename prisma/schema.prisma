@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String     @id @default(cuid())
+  walletAddress  String?    @unique
+  fid            String?    @unique
+  username       String?    @unique
+  isAdmin        Boolean    @default(false)
+  characters     Character[]
+  sessions       Session[]
+  hostedBattles  Battle[]   @relation("HostedBattles")
+  createdAt      DateTime   @default(now())
+}
+
+model Session {
+  token   String  @id
+  user    User    @relation(fields: [userId], references: [id])
+  userId  String
+  createdAt DateTime @default(now())
+}
+
+model Character {
+  id             String   @id @default(cuid())
+  user           User     @relation(fields: [userId], references: [id])
+  userId         String
+  name           String
+  age            String?
+  avatarImageUrl String?
+  avatarImageBase64 String?
+  createdAt      DateTime @default(now())
+  participants   BattleParticipant[]
+  superpowers    CharacterSuperpower[]
+  weaknesses     CharacterWeakness[]
+  story          Story?
+}
+
+model Story {
+  id          String    @id @default(cuid())
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  characterId String    @unique
+  title       String
+  synopsis    String
+  alignment   String    // HERO or VILLAIN
+  highlights  String    // JSON array as string for SQLite
+  createdAt   DateTime  @default(now())
+}
+
+model Battle {
+  id                 String    @id @default(cuid())
+  status             String    // PENDING | ACTIVE | COMPLETED
+  universe           String
+  realm              String?   // Realm/universe where battle takes place
+  durationMinutes    Int
+  outcome            String?
+  prizeAmount        Int?      // optional prize amount in smallest unit
+  prizeCurrency      String?   // e.g. USD, GOLD, GEMS
+  hostId             String?   // User who created/hosts the battle
+  host               User?     @relation("HostedBattles", fields: [hostId], references: [id])
+  minParticipants    Int       @default(2)
+  maxParticipants    Int       @default(10)
+  scheduledStartTime DateTime? // When battle should start (if scheduled)
+  startedAt          DateTime? // When battle actually started
+  completedAt        DateTime? // When battle completed
+  messages           BattleMessage[]
+  participants       BattleParticipant[]
+  createdAt          DateTime  @default(now())
+}
+
+model BattleParticipant {
+  id         String    @id @default(cuid())
+  battle     Battle    @relation(fields: [battleId], references: [id])
+  battleId   String
+  character  Character @relation(fields: [characterId], references: [id])
+  characterId String
+  status     String    @default("ALIVE") // ALIVE | DOWNED | DEAD | RESURRECTED
+  hp         Int       @default(100)
+  kills      Int       @default(0)
+  deaths     Int       @default(0)
+}
+
+model BattleMessage {
+  id        String  @id @default(cuid())
+  battle    Battle  @relation(fields: [battleId], references: [id])
+  battleId  String
+  turn      Int
+  content   String
+  contentJson String? // Serialized structured move payload for fast replay
+  createdAt DateTime @default(now())
+}
+
+model WebhookSubscription {
+  id        String   @id @default(cuid())
+  url       String
+  event     String
+  createdAt DateTime @default(now())
+}
+
+model CharacterSuperpower {
+  id          String    @id @default(cuid())
+  character   Character @relation(fields: [characterId], references: [id])
+  characterId String
+  value       String
+  @@unique([characterId, value])
+}
+
+model CharacterWeakness {
+  id          String    @id @default(cuid())
+  character   Character @relation(fields: [characterId], references: [id])
+  characterId String
+  value       String
+  @@unique([characterId, value])
+}
+
+
