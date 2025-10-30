@@ -38,6 +38,62 @@ const RACES = [
   { id: 'elemental', emoji: '🌊', label: 'Elemental' }
 ];
 
+// Catalogs (can scale up to 150/100 entries)
+const SUPERPOWERS_CATALOG = [
+  'Flight','Telekinesis','Super Strength','Invisibility','Time Warp','Energy Shield','Lightning','Shapeshift',
+  'Teleportation','Telepathy','Regeneration','Elemental Control','Gravity Shift','Precognition','Technomancy',
+  'Shadowstep','Sonic Burst','Force Field','Photon Blast','Metal Bending','Plant Whisper','Frost Touch',
+  'Pyrokinesis','Hydrokinesis','Aerokinesis','Earthshaper','Illusion Casting','Adaptive Armor','Energy Drain',
+
+  // 🧙 Magic & Arcane Powers
+  'Spell Weaving','Dark Magic','Light Magic','Necromancy','Rune Casting','Chaos Manipulation','Reality Warp',
+  'Soul Bind','Astral Projection','Summoning','Cursed Flame','Spirit Communication','Dreamwalking',
+  'Divine Blessing','Blood Magic','Arcane Infusion','Enchantment','Mirror Magic','Dimensional Rift',
+
+  // 🌌 Cosmic & Advanced Powers
+  'Cosmic Awareness','Quantum Manipulation','Stellar Flame','Void Step','Black Hole Creation',
+  'Plasma Control','Antimatter Pulse','Temporal Distortion','Celestial Guidance','Starforge',
+
+  // 🧠 Psychic & Emotional Powers
+  'Empathy','Fear Induction','Mind Reading','Dream Invasion','Memory Erase','Emotion Control',
+  'Psychic Construct','Astral Manipulation','Mental Fortress','Thought Projection',
+
+  // ⚙️ Enhanced & Hybrid Abilities
+  'Cyberlink','Nanite Swarm','Bioelectric Surge','Molecular Reconstruction','Energy Conversion',
+  'Regenerative Matrix','Adaptive Mutation','Sound Manipulation','Vibration Control','Magnetic Flux',
+
+  // 🌿 Nature & Primal Forces
+  'Beast Communication','Toxic Breath','Sandstorm Summon','Stone Skin','Lava Surge','Storm Calling',
+  'Ocean Command','Solar Beam','Lunar Blessing','Venom Touch'
+];
+
+const WEAKNESSES_CATALOG = [
+  'Kryptonite','Loud Sounds','Bright Light','Cold','Heat','Water','Iron','Silver','Fire','Darkness','Sunlight',
+  'Poison','Electric Shock','Mind Control','Glass','Salt','Holy Relics','Moonlight','Chaos Magic','Order Magic',
+
+  // 🌿 Environmental Weaknesses
+  'Toxins','Radiation','Lava','Low Oxygen','Metal Containment','Acid Rain','Extreme Pressure','Vacuum of Space',
+  'Pollution','Sand',
+
+  // 💀 Magical & Arcane Weaknesses
+  'Cursed Objects','Banishing Runes','Broken Sigils','Null Fields','Anti-Magic Zones','Holy Water','Blood Oaths',
+  'Binding Spells','Soul Severance','Dark Crystals','Spirit Banishment',
+
+  // 🧠 Psychological & Emotional Weaknesses
+  'Fear Manipulation','Guilt','Rage','Overconfidence','Empathy Overload','Loss of Focus','Nightmares',
+  'Memory Traps','Emotional Instability','Mind Fracture','Hallucinations',
+
+  // ⚙️ Technological & Physical Weaknesses
+  'EMP Pulse','Signal Interference','Magnetic Overload','System Hack','Overcharge','Energy Feedback',
+  'Corrupted Nanites','Armor Break','Metal Fatigue','Circuit Jam',
+
+  // 🌌 Cosmic or Abstract Weaknesses
+  'Time Paradox','Dimensional Rift','Reality Instability','Void Exposure','Entropy Decay','Graviton Collapse',
+  'Cosmic Drain','Fate Lock','Celestial Disfavor','Quantum Noise'
+];
+
+
+
 export default function IForgePage() {
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
@@ -54,6 +110,28 @@ export default function IForgePage() {
   const [currentStory, setCurrentStory] = useState(getRandomStory());
   const [storyPart, setStoryPart] = useState(0);
   const [tab, setTab] = useState<'basic'|'powers'|'weave'|'preview'>('basic');
+  const [showPowerModal, setShowPowerModal] = useState(false);
+  const [showWeakModal, setShowWeakModal] = useState(false);
+  const [catalogQuery, setCatalogQuery] = useState('');
+  // Helpers to manage tag-like add/remove from catalogs
+  function addPowerTag(tag: string) {
+    setPowers((prev) => {
+      const merged = Array.from(new Set([...cleanList(prev), tag]));
+      return merged.join(', ');
+    });
+  }
+  function removePowerTag(tag: string) {
+    setPowers((prev) => cleanList(prev).filter((t) => t.toLowerCase() !== tag.toLowerCase()).join(', '));
+  }
+  function addWeakTag(tag: string) {
+    setWeak((prev) => {
+      const merged = Array.from(new Set([...cleanList(prev), tag]));
+      return merged.join(', ');
+    });
+  }
+  function removeWeakTag(tag: string) {
+    setWeak((prev) => cleanList(prev).filter((t) => t.toLowerCase() !== tag.toLowerCase()).join(', '));
+  }
   const { address } = useAccount(); 
   const suggestedPowers = ['Flight','Telekinesis','Super Strength','Invisibility','Time Warp','Energy Shield','Lightning','Shapeshift'];
   const suggestedWeaknesses = ['Kryptonite','Loud Sounds','Bright Light','Cold','Heat','Water','Iron','Silver'];
@@ -229,21 +307,33 @@ export default function IForgePage() {
           <div>
             <label className="block text-sm text-zinc-600 mb-1">Superpowers (3–5)</label>
             <input className="w-full border rounded px-3 py-2" placeholder="Flight, Telekinesis, …" value={powers} onChange={(e)=>setPowers(e.target.value)} />
-            <div className="mt-1 text-xs text-zinc-500">Selected: {cleanList(powers).length}</div>
             <div className="mt-2 flex flex-wrap gap-2">
-              {suggestedPowers.map(p => (
-                <button key={p} type="button" onClick={()=> setPowers(prev => (prev? prev+", ":"")+p)} className="text-xs border px-2 py-1 rounded hover:bg-zinc-50">{p}</button>
+              {cleanList(powers).map((t)=> (
+                <span key={t} className="px-2 py-1 text-xs rounded bg-green-100 text-green-800 flex items-center gap-1">
+                  {t}
+                  <button type="button" onClick={()=>removePowerTag(t)} className="text-green-900/70 hover:text-green-900">×</button>
+                </span>
               ))}
+            </div>
+            <div className="mt-3 flex items-center justify-between">
+              <div className="text-xs text-zinc-500">Selected: {cleanList(powers).length}</div>
+              <Button variant="outline" className="btn-glow" onClick={()=>{ setCatalogQuery(''); setShowPowerModal(true); }}>Open catalog</Button>
             </div>
           </div>
           <div>
             <label className="block text-sm text-zinc-600 mb-1">Weaknesses (1–2)</label>
             <input className="w-full border rounded px-3 py-2" placeholder="Kryptonite, Bright Light" value={weak} onChange={(e)=>setWeak(e.target.value)} />
-            <div className="mt-1 text-xs text-zinc-500">Selected: {cleanList(weak).length}</div>
             <div className="mt-2 flex flex-wrap gap-2">
-              {suggestedWeaknesses.map(w => (
-                <button key={w} type="button" onClick={()=> setWeak(prev => (prev? prev+", ":"")+w)} className="text-xs border px-2 py-1 rounded hover:bg-zinc-50">{w}</button>
+              {cleanList(weak).map((t)=> (
+                <span key={t} className="px-2 py-1 text-xs rounded bg-red-100 text-red-800 flex items-center gap-1">
+                  {t}
+                  <button type="button" onClick={()=>removeWeakTag(t)} className="text-red-900/70 hover:text-red-900">×</button>
+                </span>
               ))}
+            </div>
+            <div className="mt-3 flex items-center justify-between">
+              <div className="text-xs text-zinc-500">Selected: {cleanList(weak).length}</div>
+              <Button variant="outline" className="btn-glow" onClick={()=>{ setCatalogQuery(''); setShowWeakModal(true); }}>Open catalog</Button>
             </div>
           </div>
           <div>
@@ -274,13 +364,13 @@ export default function IForgePage() {
             </div>
           )}
           {tab==='weave' && (
-            <div className="bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 text-white rounded-lg p-6 min-h-[400px] flex flex-col">
+            <div className="relative bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 text-white rounded-lg p-6 min-h-[400px] flex flex-col">
               <div className="mb-4">
                 <div className="text-xl font-bold mb-2">{currentStory.title}</div>
                 <div className="w-16 h-1 bg-gradient-to-r from-purple-400 to-pink-400 rounded"></div>
               </div>
               <div className="flex-1 flex items-center">
-                <p className="text-lg leading-relaxed animate-pulse">{currentStory.parts[storyPart]}</p>
+                <p className="text-lg leading-relaxed typewriter">{currentStory.parts[storyPart]}</p>
               </div>
               <div className="mt-4 flex gap-1">
                 {currentStory.parts.map((_, idx)=> (
@@ -288,6 +378,14 @@ export default function IForgePage() {
                 ))}
               </div>
               <div className="mt-4 text-sm text-purple-200 text-center">Cookie is weaving your tale... {storyPart+1} / {currentStory.parts.length}</div>
+              {/* Spinner */}
+              <div className="absolute top-4 right-4">
+                <div className="h-6 w-6 border-2 border-white/40 border-t-white rounded-full animate-spin"></div>
+              </div>
+              {/* Manual advance */}
+              <div className="mt-4 flex justify-center">
+                <Button variant="outline" onClick={()=> setStoryPart(p=> Math.min(p+1, currentStory.parts.length-1))} className="btn-glow">Next ✨</Button>
+              </div>
             </div>
           )}
           {tab==='preview' && (
@@ -341,6 +439,54 @@ export default function IForgePage() {
           )}
         </div>
       </div>
+      {/* Powers Catalog Modal */}
+      {showPowerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={()=>setShowPowerModal(false)} />
+          <div className="relative z-10 w-full max-w-lg bg-white rounded-lg shadow-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="font-medium">Pick superpowers</div>
+              <button onClick={()=>setShowPowerModal(false)} className="text-zinc-600 hover:text-zinc-900">✕</button>
+            </div>
+            <input className="w-full border rounded px-3 py-2 mb-3" placeholder="Search..." value={catalogQuery} onChange={(e)=>setCatalogQuery(e.target.value)} />
+            <div className="max-h-64 overflow-auto grid grid-cols-2 gap-2">
+              {SUPERPOWERS_CATALOG
+                .filter(p=> p.toLowerCase().includes(catalogQuery.toLowerCase()))
+                .filter(p=> !cleanList(powers).map(x=>x.toLowerCase()).includes(p.toLowerCase()))
+                .map((p)=> (
+                  <button key={p} type="button" onClick={()=>addPowerTag(p)} className="text-xs border px-2 py-2 rounded hover:bg-green-50 text-left">{p}</button>
+                ))}
+            </div>
+            <div className="mt-3 text-right">
+              <Button onClick={()=>setShowPowerModal(false)}>Done</Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Weaknesses Catalog Modal */}
+      {showWeakModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={()=>setShowWeakModal(false)} />
+          <div className="relative z-10 w-full max-w-lg bg-white rounded-lg shadow-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="font-medium">Pick weaknesses</div>
+              <button onClick={()=>setShowWeakModal(false)} className="text-zinc-600 hover:text-zinc-900">✕</button>
+            </div>
+            <input className="w-full border rounded px-3 py-2 mb-3" placeholder="Search..." value={catalogQuery} onChange={(e)=>setCatalogQuery(e.target.value)} />
+            <div className="max-h-64 overflow-auto grid grid-cols-2 gap-2">
+              {WEAKNESSES_CATALOG
+                .filter(w=> w.toLowerCase().includes(catalogQuery.toLowerCase()))
+                .filter(w=> !cleanList(weak).map(x=>x.toLowerCase()).includes(w.toLowerCase()))
+                .map((w)=> (
+                  <button key={w} type="button" onClick={()=>addWeakTag(w)} className="text-xs border px-2 py-2 rounded hover:bg-red-50 text-left">{w}</button>
+                ))}
+            </div>
+            <div className="mt-3 text-right">
+              <Button onClick={()=>setShowWeakModal(false)}>Done</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

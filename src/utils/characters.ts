@@ -35,7 +35,8 @@ export function validateCharacterSpec(spec: any): { ok: true } | { ok: false; er
   if (typeof spec.extraContext === 'string') {
     const ctx = spec.extraContext.trim();
     if (ctx.length === 0) delete spec.extraContext;
-    if (ctx.length > 20) return { ok: false, error: 'extraContext must be ≤ 20 characters' };
+    // Allow up to 60 characters (frontend enforces 60 as well)
+    if (ctx.length > 60) return { ok: false, error: 'extraContext must be ≤ 60 characters' };
   }
   return { ok: true };
 }
