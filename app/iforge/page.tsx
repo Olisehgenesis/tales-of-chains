@@ -1,8 +1,9 @@
 "use client";
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 //import address from wagmi 
 import { useAccount } from 'wagmi';
+import { COOKIE_STORIES } from '@/utils/cookieStories';
 
 type PreviewResponse = {
   story: { title: string; synopsis: string; alignment: 'HERO'|'VILLAIN'; highlights?: string[] };
@@ -23,18 +24,36 @@ function cleanList(input: string): string[] {
   return out;
 }
 
+function getRandomStory(){ return COOKIE_STORIES[Math.floor(Math.random()*COOKIE_STORIES.length)]; }
+const RACES = [
+  { id: 'human', emoji: '👤', label: 'Human' },
+  { id: 'demon', emoji: '😈', label: 'Demon' },
+  { id: 'god', emoji: '⚡', label: 'God' },
+  { id: 'beast', emoji: '🐺', label: 'Beast' },
+  { id: 'monster', emoji: '👹', label: 'Monster' },
+  { id: 'elf', emoji: '🧝', label: 'Elf' },
+  { id: 'angel', emoji: '👼', label: 'Angel' },
+  { id: 'dragon', emoji: '🐉', label: 'Dragon' },
+  { id: 'undead', emoji: '💀', label: 'Undead' },
+  { id: 'elemental', emoji: '🌊', label: 'Elemental' }
+];
+
 export default function IForgePage() {
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [powers, setPowers] = useState('');
   const [weak, setWeak] = useState('');
   const [extraContext, setExtraContext] = useState('');
+  const [race, setRace] = useState('human');
   const [stage, setStage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
   const [alignment, setAlignment] = useState<'HERO'|'VILLAIN'|'AUTO'>('AUTO');
   const [formError, setFormError] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [currentStory, setCurrentStory] = useState(getRandomStory());
+  const [storyPart, setStoryPart] = useState(0);
+  const [tab, setTab] = useState<'basic'|'powers'|'weave'|'preview'>('basic');
   const { address } = useAccount(); 
   const suggestedPowers = ['Flight','Telekinesis','Super Strength','Invisibility','Time Warp','Energy Shield','Lightning','Shapeshift'];
   const suggestedWeaknesses = ['Kryptonite','Loud Sounds','Bright Light','Cold','Heat','Water','Iron','Silver'];
@@ -69,11 +88,14 @@ export default function IForgePage() {
       }
       setStage('⚙️ Connecting to the Forge…');
       setLoading(true);
-      const spec: any = { name: specName, superpowers: specPowers, weaknesses: specWeak };
+      const spec: any = { name: specName, superpowers: specPowers, weaknesses: specWeak, race };
       if (age.trim()) spec.age = age.trim();
       if (extraContext.trim()) spec.extraContext = extraContext.trim();
       if (alignment !== 'AUTO') spec.alignmentHint = alignment;
+      setCurrentStory(getRandomStory());
+      setStoryPart(0);
       setStage('🛠️ Weaving powers and flaws…');
+      setTab('weave');
       const res = await fetch('/api/mint/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(spec) });
       if (!res.ok) {
         let msg = 'Preview failed';
@@ -85,6 +107,7 @@ export default function IForgePage() {
       const data = await res.json();
       setPreview(data);
       setStage('✅ Ready');
+      setTab('preview');
     } catch (e: any) {
       const msg = typeof e?.message === 'string' ? e.message : 'Forge error';
       setStage(`❌ ${msg}`);
@@ -93,6 +116,12 @@ export default function IForgePage() {
       setLoading(false);
     }
   }
+  useEffect(()=>{
+    if (loading && storyPart < currentStory.parts.length - 1) {
+      const t = setTimeout(()=> setStoryPart(p=>p+1), 3000);
+      return ()=> clearTimeout(t);
+    }
+  }, [loading, storyPart, currentStory.parts.length]);
 
   async function onCreate() {
     try {
@@ -117,6 +146,14 @@ export default function IForgePage() {
         avatarImageUrl: preview.imageUrl,
         address: address
       };
+      if (preview?.story?.title && preview?.story?.synopsis && preview?.story?.alignment) {
+        payload.story = {
+          title: preview.story.title,
+          synopsis: preview.story.synopsis,
+          alignment: preview.story.alignment,
+          highlights: preview.story.highlights || []
+        };
+      }
       if (age.trim()) payload.age = age.trim();
       if (extraContext.trim()) payload.extraContext = extraContext.trim();
 
@@ -142,8 +179,19 @@ export default function IForgePage() {
         <h1 className="text-3xl font-handjet">iForge</h1>
         <p className="text-sm text-zinc-600 mt-1">They say Good always wins, but have you ever seen a bad bullet stopped by good butter?</p>
       </header>
+      {/* Tabs */}
+      <div className="mb-4 flex items-center gap-2 text-sm">
+        <button onClick={()=>setTab('basic')} className={`px-3 py-1 rounded ${tab==='basic'?'bg-zinc-900 text-white':'border'}`}>1. Basics</button>
+        <button onClick={()=>setTab('powers')} className={`px-3 py-1 rounded ${tab==='powers'?'bg-zinc-900 text-white':'border'}`}>2. Powers</button>
+        <button disabled className={`px-3 py-1 rounded ${tab==='weave'?'bg-zinc-900 text-white':'border'}`}>3. Weave</button>
+        <button disabled className={`px-3 py-1 rounded ${tab==='preview'?'bg-zinc-900 text-white':'border'}`}>4. Preview</button>
+      </div>
+
       <div className="grid gap-6 md:grid-cols-2">
+        {/* LEFT COLUMN */}
         <div className="space-y-4 bg-white rounded border p-4">
+          {tab==='basic' && (
+            <>
           <div>
             <label className="block text-sm text-zinc-600 mb-1">Name</label>
             <input className="w-full border rounded px-3 py-2" placeholder="e.g. Nova Sentinel" value={name} onChange={(e)=>setName(e.target.value)} />
@@ -154,10 +202,30 @@ export default function IForgePage() {
             <div className="mt-1 text-xs text-zinc-500">Describe age in words; it will shape the story.</div>
           </div>
           <div>
-            <label className="block text-sm text-zinc-600 mb-1">Extra Context (optional, 20 chars max)</label>
-            <input className="w-full border rounded px-3 py-2" placeholder="e.g. demon, first born, elf" value={extraContext} onChange={(e)=>setExtraContext(e.target.value.slice(0, 20))} maxLength={20} />
-            <div className="mt-1 text-xs text-zinc-500">{extraContext.length}/20 - Race, background, or extra info for AI</div>
+            <label className="block text-sm text-zinc-600 mb-1">Extra Context (optional, 60 chars max)</label>
+            <input className="w-full border rounded px-3 py-2" placeholder="e.g. demon, first born, elf" value={extraContext} onChange={(e)=>setExtraContext(e.target.value.slice(0, 60))} maxLength={60} />
+            <div className="mt-1 text-xs text-zinc-500">{extraContext.length}/60 - Race, background, or extra info for AI</div>
           </div>
+          <div>
+            <label className="block text-sm text-zinc-600 mb-1">Race</label>
+            <div className="grid grid-cols-5 gap-2">
+              {RACES.map(r => (
+                <button key={r.id} type="button" onClick={()=> setRace(r.id)}
+                        className={`border rounded px-2 py-2 text-xs ${race===r.id? 'ring-2 ring-blue-500 bg-blue-50':'hover:bg-zinc-50'}`}>
+                  <div className="text-lg mb-1">{r.emoji}</div>
+                  {r.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={()=>setTab('powers')}>Next →</Button>
+          </div>
+            </>
+          )}
+
+          {tab==='powers' && (
+            <>
           <div>
             <label className="block text-sm text-zinc-600 mb-1">Superpowers (3–5)</label>
             <input className="w-full border rounded px-3 py-2" placeholder="Flight, Telekinesis, …" value={powers} onChange={(e)=>setPowers(e.target.value)} />
@@ -190,21 +258,14 @@ export default function IForgePage() {
             <div className="text-xs text-zinc-700 border rounded p-2">{formError}</div>
           )}
           <div className="flex items-center gap-2">
-            <Button onClick={onPreview} disabled={loading}>{loading ? 'Working…' : 'Preview'}</Button>
-            <Button onClick={onCreate} variant="outline" disabled={!preview || loading}>Create</Button>
+            <Button onClick={onPreview} disabled={loading}>Preview</Button>
+            <Button onClick={()=>setTab('basic')} variant="outline">Back</Button>
             {stage && <span className="text-xs text-zinc-600">{stage}</span>}
           </div>
-          {loading && (
-            <div className="text-sm text-zinc-700 border rounded p-3">
-              <ul className="list-disc list-inside space-y-1">
-                <li className={stage?.includes('Connecting')?'font-medium':''}>⚙️ Connecting to the Forge</li>
-                <li className={stage?.includes('Weaving')?'font-medium':''}>🛠️ Weaving powers and flaws</li>
-                <li className={stage?.includes('Summoning')?'font-medium':''}>🎨 Summoning portrait</li>
-                <li className={stage?.includes('Ready')?'font-medium':''}>✅ Ready</li>
-              </ul>
-            </div>
+            </>
           )}
         </div>
+        {/* RIGHT COLUMN */}
         <div className="space-y-4">
           {serverError && (
             <div className="border rounded p-3 bg-white text-sm">
@@ -212,6 +273,24 @@ export default function IForgePage() {
               <div className="text-zinc-700">{serverError}</div>
             </div>
           )}
+          {tab==='weave' && (
+            <div className="bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 text-white rounded-lg p-6 min-h-[400px] flex flex-col">
+              <div className="mb-4">
+                <div className="text-xl font-bold mb-2">{currentStory.title}</div>
+                <div className="w-16 h-1 bg-gradient-to-r from-purple-400 to-pink-400 rounded"></div>
+              </div>
+              <div className="flex-1 flex items-center">
+                <p className="text-lg leading-relaxed animate-pulse">{currentStory.parts[storyPart]}</p>
+              </div>
+              <div className="mt-4 flex gap-1">
+                {currentStory.parts.map((_, idx)=> (
+                  <div key={idx} className={`h-1 flex-1 rounded ${idx <= storyPart ? 'bg-purple-400' : 'bg-white/20'}`} />
+                ))}
+              </div>
+              <div className="mt-4 text-sm text-purple-200 text-center">Cookie is weaving your tale... {storyPart+1} / {currentStory.parts.length}</div>
+            </div>
+          )}
+          {tab==='preview' && (
           <div className="border rounded p-4 bg-white">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -242,6 +321,8 @@ export default function IForgePage() {
               )}
             </div>
           </div>
+          )}
+          {tab==='preview' && (
           <div className="border rounded bg-white p-2">
             <div className="aspect-square w-full overflow-hidden rounded border">
               {preview ? (
@@ -251,6 +332,13 @@ export default function IForgePage() {
               )}
             </div>
           </div>
+          )}
+          {tab==='preview' && (
+          <div className="flex items-center gap-2">
+            <Button onClick={onCreate} disabled={!preview}>Save</Button>
+            <Button onClick={()=>setTab('powers')} variant="outline">Back</Button>
+          </div>
+          )}
         </div>
       </div>
     </section>

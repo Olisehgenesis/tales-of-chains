@@ -20,7 +20,7 @@ export default function Background() {
         const isLarge = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(min-width: 768px)').matches; // md breakpoint
         const idx = (hashPath(location.pathname) % 3) + 1; // 1..3
         if (isLarge) {
-          setUrl(`/bg4.jpg`);
+          setUrl('/winbghd.jpg');
         } else {
           if (idx === 1) setUrl('/andbg1.png');
           if (idx === 2) setUrl('/andbg2.jpg');

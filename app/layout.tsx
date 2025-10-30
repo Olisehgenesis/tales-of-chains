@@ -5,6 +5,8 @@ import { headers } from 'next/headers';
 import ContextProvider from '@/context';
 import Background from '@/components/Background';
 import HeaderWallet from '@/components/HeaderWallet';
+import profileImage from '@/assets/profile.png';
+import Image from 'next/image';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,17 +33,28 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased text-zinc-900 dark:text-zinc-100`}>
         <Background />
-        <header className="border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-40 bg-white dark:bg-zinc-950">
-          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-            <a href="/" className="font-semibold tracking-wide font-handjet text-xl">⚔️ tales of Chains [Beta]</a>
-            <nav className="flex items-center gap-4 text-sm">
-              <a href="/characters" className="hover:underline">Characters</a>
-              <a href="/profile" className="hover:underline">Profile</a>
-              <a href="/battles" className="hover:underline">Battles</a>
-              <a href="/leaderboard" className="hover:underline">Leaderboard</a>
-              <a href="/iforge" className="hover:underline">iForge</a>
+        <header className="sticky top-0 z-40 relative bg-transparent">
+          <div className="max-w-6xl mx-auto px-4 py-3 relative">
+            <div className="px-3 py-2 flex items-center justify-between relative z-10">
+              <a href="/" className="font-semibold tracking-wide font-handjet text-3xl md:text-4xl text-zinc-100">⚔️ tales of Chains [Beta]</a>
+              <nav className="flex items-center gap-6 md:gap-8 text-lg md:text-xl font-handjet text-zinc-100">
+                <a href="/characters" className="hover:underline">Characters</a>
+                <a href="/profile" className="hover:underline">Profile</a>
+                <a href="/battles" className="hover:underline">Battles</a>
+                <a href="/leaderboard" className="hover:underline">Leaderboard</a>
+                <a href="/iforge" className="hover:underline">iForge</a>
               <HeaderWallet />
-            </nav>
+              </nav>
+            </div>
+            {/* Floating profile image outside the white container */}
+            <Image
+              src={profileImage}
+              alt="profile"
+              width={96}
+              height={96}
+              priority
+              className="absolute right-0 top-1 md:right-2 md:top-0 w-16 h-16 md:w-24 md:h-24 object-cover drop-shadow-lg z-20"
+            />
           </div>
         </header>
         <ContextProvider cookies={cookies}>
